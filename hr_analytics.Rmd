@@ -1,0 +1,178 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+# Read in the data
+hrdata <- read.csv("HR-Employee-Attrition.csv")
+```
+```{r}
+dim(hrdata)
+```
+```{r}
+
+df_left <- hrdata[c("Attrition", "MonthlyIncome", "Gender", "JobRole", "PercentSalaryHike", "YearsAtCompany", "YearsInCurrentRole","YearsSinceLastPromotion", "YearsWithCurrManager", "DistanceFromHome")]
+df_left_yes <- df_left[df_left$Attrition == "Yes",] 
+df_left_yes
+```
+```{r}
+
+install.packages('writexl')
+library(writexl)
+
+write_xlsx(df_left_yes, 'C:\\Users\\jfauxinu\\Documents\\hr_analysis_module8\\data.xlsx')
+
+```
+			
+
+```{r}
+# correlation matrix for selected columns to see if the demographics correlate
+cor(
+hrdata[ , c("Age", "DailyRate", "DistanceFromHome", "Education", "HourlyRate", "MonthlyIncome", "MonthlyRate", "NumCompaniesWorked", "TotalWorkingYears", "TrainingTimesLastYear")]
+)
+```
+#### Strong positive correlation
+##### Monthly Income and Total Working Years has a .77 correlation - more years worked more monthly income earned
+ 
+##### Age and Total Working Years has a .68 correlation  - more years worked employees are older
+
+##### Age and Monthly Income has a .5 correlation - generally the older people are the more their monthly income
+
+#### Positive correlation
+
+##### Age and NumberCompaniesWorked has a .30 correlation
+
+#####  Age and Education has a .21
+
+```{r}
+pairs(~MonthlyIncome+Age+TotalWorkingYears+Education,data = hrdata,
+main = "Scatterplot Matrix")
+```
+#### Strong positive correlation
+
+##### Monthly Income and Age 
+
+##### Monthly Income and Total Working Years
+
+##### Age and Total Working Years
+
+```{r}
+# Install  packages - only have to do this once
+#install.packages("ggplot2")
+#install.packages("GGally")
+
+# Load ggplot2
+library("ggplot2")
+```
+
+```{r}
+# Load GGally
+library(GGally)
+
+```
+
+
+```{r}
+# add Gender to see the correlations
+ggpairs(hrdata, columns = c('MonthlyIncome', 'Age', 'TotalWorkingYears', 'Education', 'Gender'),
+        aes(color = Gender),
+        columnLabels = c("Monthly Income", "Age", "Total Working Years", "Education", "Gender"))
+
+```
+#### Strong positive correlation
+##### Monthly Income and Total Working Years has a .773 correlation - more years worked more monthly income earned
+####                                    Female has .761 correlation females earn less
+####                                    Male has   .781 males correlation earn more                       
+ 
+#####  Total Working Years and Age has a .680 correlation  - more years worked employees tend to be older
+####                        Female has a .704 correlation  - females have worked more years
+####                        Male  has  a .663 correlation  - males have worked less years
+
+##### Age and Monthly Income has a .498 correlation - generally the older people are the more their monthly income
+####                  Female has a .505 correlation - females are slightly older
+####                  Male has a   .482 correlation - males are slightly younger
+
+
+```{r}
+# boxplot of the age distribution of employees who were laid off (yes) and those who were not (no)
+boxplot(Age~Attrition,data=hrdata, main= "Who Got Laid Off", xlab="Attrition", ylab="Age",
+        col = "orange", border = "brown", horizontal = TRUE, notch = TRUE)
+
+```
+
+```{r}
+yes_age <- hrdata[(hrdata$Attrition == "Yes"),'Age']
+no_age <- hrdata[(hrdata$Attrition != "Yes"),'Age']
+```
+
+
+```{r}
+t.test(yes_age, no_age)
+```
+Assigned to investigate claim that the last layoffs impacted older employees - age discrimination
+The p value is less than 0.05, there is a statistically significant difference between the two samples, but employees that were affected were actually younger than those who remained on the job. Reject the null hypothesis (not based on age)
+
+```{r}
+
+# boxplot of the employee number distribution of employees who were laid off 
+boxplot(EmployeeNumber~Attrition,data=hrdata, main= "Who Got Laid Off", xlab="Attrition", ylab="EmployeeNumber",
+        col = "indianred1", border = "slateblue", horizontal = TRUE, notch = TRUE)
+```
+
+From the boxplot it seems some newer hires were not impacted, but on tail end it seems the numbers were smaller.
+
+
+```{r}
+yes_emp_num <- hrdata[(hrdata$Attrition == "Yes"),'EmployeeNumber']
+no_emp_num <- hrdata[(hrdata$Attrition != "Yes"),'EmployeeNumber']
+```
+
+
+```{r}
+t.test(yes_emp_num, no_emp_num)
+```
+Another claim has been filed - this time need to investigate if recently hired employees were impacted more than senior employees (H0).
+This time the p value is much larger than 0.05. Employee Number does not have a statistically significant relationship with the Attrition.
+Can't say with confidence that newer employees were not impacted more than senior employees. Accept or fail to reject the Null Hypothesis.
+
+```{r}
+model1 = lm(MonthlyIncome ~ Age, data = hrdata)
+summary(model1)
+```
+#### Linear regression model that predicts the MonthlyIncome based upon Age
+#### p is smaller than 0.05, which is statistically signifcant.
+#### The R-squared value is .2479, the model explains 
+#### close to 25% of variance in the MonthlyIncome is due to age. 
+
+```{r}
+model2 = lm(MonthlyIncome ~ Age + TotalWorkingYears, data = hrdata)
+summary(model2)
+```
+### The p-value is still smaller than 0.05. The R-squared value is increased to 0.5988, 
+### so model2 explains that close to 60% of the variance in the MonthlyIncome 
+### and TotalWorkingYears by due to using the age variable.
+
+```{r}
+hist(residuals(model1), col = "gray")
+```
+### Checking Assumptions of the Model
+#### The distribution of model residuals should be approximately normal.
+###  Above the distribution is slightly right skewed.
+###  Belwo the distribution is normal
+```{r}
+hist(residuals(model2), col = "blue")
+```
+
+```{r}
+#create fitted value vs residual plot
+plot(fitted(model2), residuals(model2))
+
+#add horizontal line at 0
+abline(h = 0, lty = 2)
+```
+The variance of the residuals should be consistent for all observations.
+
+
+
